@@ -526,7 +526,7 @@ const TaskForm = ({ userRole, currentUser, email }) => {
                       onChange={(e) =>
                         handleUpdateStatus(task._id, e.target.value)
                       }
-                      className="px-3 py-1 rounded-lg bg-gray-800 border border-gray-700 text-cyan-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 text-sm z-20"
+                      className="px-3 py-1 rounded-lg bg-gray-800 border border-gray-700 text-cyan-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 text-sm z-20 cursor-pointer"
                     >
                       <option value="Pending">Pending</option>
                       <option value="In Progress">In Progress</option>
@@ -535,12 +535,12 @@ const TaskForm = ({ userRole, currentUser, email }) => {
                   )}
 
                   {/* Edit and Delete Buttons */}
-                  <div className="flex items-center gap-2 z-20">
+                  <div className="flex items-center gap-2 z-20 ">
                     {(userRole === "Administrator" ||
                       userRole === "Manager") && (
                       <button
                         onClick={() => handleUpdateTask(task)}
-                        className="p-2 hover:bg-gray-800/50 rounded-lg text-cyan-400 hover:text-cyan-300 transition-colors z-20"
+                        className="p-2 hover:bg-gray-800/50 rounded-lg text-cyan-400 hover:text-cyan-300 transition-colors z-20 cursor-pointer"
                       >
                         <FiEdit size={16} />
                       </button>
@@ -549,7 +549,7 @@ const TaskForm = ({ userRole, currentUser, email }) => {
                     {userRole === "Administrator" && (
                       <button
                         onClick={() => handleDeleteTask(task._id)}
-                        className="p-2 hover:bg-gray-800/50 rounded-lg text-red-400 hover:text-red-300 transition-colors z-20"
+                        className="p-2 hover:bg-gray-800/50 rounded-lg text-red-400 hover:text-red-300 transition-colors z-20 cursor-pointer"
                       >
                         <FiTrash size={16} />
                       </button>
