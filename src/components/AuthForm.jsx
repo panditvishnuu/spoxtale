@@ -22,7 +22,7 @@ const AuthForm = ({ isLogin }) => {
       }
 
       const response = await axios.post(
-        `http://localhost:3000${endpoint}`,
+        `https://spoxtale-backend-598s.onrender.com${endpoint}`,
         userData
       );
 

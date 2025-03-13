@@ -13,6 +13,8 @@ import {
 import { motion } from "framer-motion";
 
 const TaskForm = ({ userRole, currentUser }) => {
+  console.log("current user  ",  currentUser);
+  
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [tasks, setTasks] = useState([]);
@@ -33,8 +35,8 @@ const TaskForm = ({ userRole, currentUser }) => {
       const token = localStorage.getItem("token");
       const endpoint =
         userRole === "Employee"
-          ? "http://localhost:3000/api/tasks/my-tasks"
-          : "http://localhost:3000/api/tasks";
+          ? "https://spoxtale-backend-598s.onrender.com/api/tasks/my-tasks"
+          : "https://spoxtale-backend-598s.onrender.com/api/tasks";
 
       const response = await axios.get(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
@@ -49,7 +51,7 @@ const TaskForm = ({ userRole, currentUser }) => {
   const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:3000/api/employees", {
+      const response = await axios.get("https://spoxtale-backend-598s.onrender.com/api/employees", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setEmployees(response.data.filter((user) => user.role === "Employee"));
@@ -64,7 +66,7 @@ const TaskForm = ({ userRole, currentUser }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "http://localhost:3000/api/tasks",
+        "https://spoxtale-backend-598s.onrender.com/api/tasks",
         {
           title,
           description,
@@ -72,7 +74,7 @@ const TaskForm = ({ userRole, currentUser }) => {
           status: "Pending",
           priority: "Medium",
           startDate: new Date(),
-          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 7 days
+          endDate : dueDate, // Default 7 days
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -90,7 +92,7 @@ const TaskForm = ({ userRole, currentUser }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `http://localhost:3000/api/tasks/${taskId}/status`,
+        `https://spoxtale-backend-598s.onrender.com/api/tasks/${taskId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -110,7 +112,7 @@ const TaskForm = ({ userRole, currentUser }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `http://localhost:3000/api/tasks/${task._id}`,
+        `https://spoxtale-backend-598s.onrender.com/api/tasks/${task._id}`,
         {
           title: newTitle,
           description: newDesc || task.description,
@@ -129,7 +131,7 @@ const TaskForm = ({ userRole, currentUser }) => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3000/api/tasks/${taskId}`, {
+      await axios.delete(`https://spoxtale-backend-598s.onrender.com/api/tasks/${taskId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchTasks();
@@ -140,7 +142,7 @@ const TaskForm = ({ userRole, currentUser }) => {
 
   // Profile Header with animations
   const ProfileHeader = () => {
-    const userInitial = currentUser?.username?.[0]?.toUpperCase() || "U";
+    const userInitial = currentUser[0].toUpperCase();
 
     return (
       <motion.div
@@ -154,7 +156,7 @@ const TaskForm = ({ userRole, currentUser }) => {
             {userInitial}
           </div>
           <div>
-            <h2 className="text-2xl font-bold">{currentUser?.username}</h2>
+            <h2 className="text-2xl font-bold text-amber-200">{currentUser}</h2>
             <div className="flex items-center gap-2 mt-1">
               <FiBriefcase className="opacity-75" />
               <span className="opacity-90">{userRole}</span>
@@ -275,7 +277,7 @@ const TaskForm = ({ userRole, currentUser }) => {
 
           <button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer mt-4"
             >
               <FiPlus /> Create Task
             </button>
