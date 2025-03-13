@@ -456,7 +456,7 @@ const TaskForm = ({ userRole, currentUser, email }) => {
                 className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-gray-800 hover:border-cyan-500/30 relative group transition-all duration-300"
               >
                 {/* Glowing effect */}
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
                 {/* Task Header */}
                 <div className="flex justify-between items-start">
@@ -516,7 +516,7 @@ const TaskForm = ({ userRole, currentUser, email }) => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="mt-4 flex items-center justify-between">
+                <div className="mt-4 flex items-center justify-between z-10">
                   {/* Status Dropdown */}
                   {(userRole === "Employee" ||
                     userRole === "Manager" ||
@@ -526,7 +526,7 @@ const TaskForm = ({ userRole, currentUser, email }) => {
                       onChange={(e) =>
                         handleUpdateStatus(task._id, e.target.value)
                       }
-                      className="px-3 py-1 rounded-lg bg-gray-800 border border-gray-700 text-cyan-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 text-sm"
+                      className="px-3 py-1 rounded-lg bg-gray-800 border border-gray-700 text-cyan-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 text-sm z-20"
                     >
                       <option value="Pending">Pending</option>
                       <option value="In Progress">In Progress</option>
@@ -535,12 +535,12 @@ const TaskForm = ({ userRole, currentUser, email }) => {
                   )}
 
                   {/* Edit and Delete Buttons */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 z-20">
                     {(userRole === "Administrator" ||
                       userRole === "Manager") && (
                       <button
                         onClick={() => handleUpdateTask(task)}
-                        className="p-2 hover:bg-gray-800/50 rounded-lg text-cyan-400 hover:text-cyan-300 transition-colors"
+                        className="p-2 hover:bg-gray-800/50 rounded-lg text-cyan-400 hover:text-cyan-300 transition-colors z-20"
                       >
                         <FiEdit size={16} />
                       </button>
@@ -549,7 +549,7 @@ const TaskForm = ({ userRole, currentUser, email }) => {
                     {userRole === "Administrator" && (
                       <button
                         onClick={() => handleDeleteTask(task._id)}
-                        className="p-2 hover:bg-gray-800/50 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                        className="p-2 hover:bg-gray-800/50 rounded-lg text-red-400 hover:text-red-300 transition-colors z-20"
                       >
                         <FiTrash size={16} />
                       </button>
