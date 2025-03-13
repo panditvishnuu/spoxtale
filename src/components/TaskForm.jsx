@@ -206,22 +206,28 @@ const TaskForm = ({ userRole, currentUser, email }) => {
     return (
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 mb-8 shadow-lg shadow-purple-500/20 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/10 to-transparent" />
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          {/* User Avatar */}
           <div className="flex items-center gap-4">
             <div className="p-3 bg-white/20 rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl">
               {userInitial}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-amber-200">
+              <h2 className="text-lg sm:text-2xl font-bold text-amber-200">
                 {currentUser.toUpperCase() || "User"}
               </h2>
-              <div className="flex items-center gap-2 mt-1">
-                <FiBriefcase className="opacity-75" />
-                <span className="opacity-90">{userRole}</span>
-                <span className="ml-4 flex items-center gap-1">
+              {/* User Role & Email */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 mt-1 text-sm sm:text-base">
+                <div className="flex items-center gap-2">
+                  <FiBriefcase className="opacity-75" />
+                  <span className="opacity-90">{userRole}</span>
+                </div>
+                <div className="flex items-center gap-1 mt-1 sm:mt-0">
                   <FiUser className="opacity-75" />
-                  <span>{email || "No Email"}</span>
-                </span>
+                  <span className="truncate max-w-[180px] sm:max-w-full">
+                    {email || "No Email"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
