@@ -6,7 +6,8 @@ import TaskForm from "./TaskForm";
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
   const [userRole, setUserRole] = useState("");
-  const [username, setUsername] = useState()
+  const [username, setUsername] = useState();
+  const [email, setEmail] = useState();
   const navigate = useNavigate();
   
 
@@ -25,6 +26,7 @@ const TaskList = () => {
 
         console.log("Full response:", response);
         console.log("User role:", response.data?.role);
+        setEmail(response.data?.email);
         setUsername(response.data?.username);
         console.log(username);
         
@@ -67,10 +69,9 @@ const TaskList = () => {
   },[userRole]);
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Task Management</h1>
+    <div className="">
       {userRole === "Administrator" || userRole === "Manager" || userRole === "Employee" ? (
-        <TaskForm userRole={userRole} currentUser={username}/>
+        <TaskForm userRole={userRole} currentUser={username} email = {email}/>
       ) : null}
     </div>
   );

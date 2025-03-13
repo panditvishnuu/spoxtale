@@ -9,12 +9,17 @@ import {
   FiClock,
   FiCheckCircle,
   FiLoader,
+  FiSearch,
+  FiLogOut,
 } from "react-icons/fi";
 import { motion } from "framer-motion";
+import Navbar from "./Navbar";
+import Footer from "./Footer";
+import { useNavigate } from "react-router-dom";
 
-const TaskForm = ({ userRole, currentUser }) => {
-  console.log("current user  ",  currentUser);
-  
+const TaskForm = ({ userRole, currentUser, email }) => {
+  console.log("current user  ", currentUser);
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [tasks, setTasks] = useState([]);
@@ -22,11 +27,47 @@ const TaskForm = ({ userRole, currentUser }) => {
   const [employees, setEmployees] = useState([]);
   const [priority, setPriority] = useState("Medium");
   const [dueDate, setDueDate] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isTaskLoading, setIsTaskLoading] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("All");
+  const [selectedPriority, setSelectedPriority] = useState("All");
+  const [selectedAssignee, setSelectedAssignee] = useState("All");
+
+  const filteredTasks = React.useMemo(() => {
+    return tasks.filter((task) => {
+      const matchesSearch =
+        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesStatus =
+        selectedStatus === "All" || task.status === selectedStatus;
+      const matchesPriority =
+        selectedPriority === "All" || task.priority === selectedPriority;
+      const matchesAssignee =
+        selectedAssignee === "All" || task.assignedTo?._id === selectedAssignee;
+
+      return (
+        matchesSearch && matchesStatus && matchesPriority && matchesAssignee
+      );
+    });
+  }, [tasks, searchQuery, selectedStatus, selectedPriority, selectedAssignee]);
 
   useEffect(() => {
-    if (userRole) fetchTasks();
-    if (userRole === "Administrator" || userRole === "Manager")
-      fetchEmployees();
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        await fetchTasks();
+        if (userRole === "Administrator" || userRole === "Manager") {
+          await fetchEmployees();
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, [userRole]);
 
   // Fetch tasks based on role
@@ -51,9 +92,12 @@ const TaskForm = ({ userRole, currentUser }) => {
   const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("https://spoxtale-backend-598s.onrender.com/api/employees", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        "https://spoxtale-backend-598s.onrender.com/api/employees",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setEmployees(response.data.filter((user) => user.role === "Employee"));
     } catch (err) {
       console.error("Failed to fetch employees:", err);
@@ -63,6 +107,7 @@ const TaskForm = ({ userRole, currentUser }) => {
   // Create a new task
   const handleCreateTask = async (e) => {
     e.preventDefault();
+    setIsTaskLoading(true);
     try {
       const token = localStorage.getItem("token");
       await axios.post(
@@ -72,23 +117,26 @@ const TaskForm = ({ userRole, currentUser }) => {
           description,
           assignedTo,
           status: "Pending",
-          priority: "Medium",
+          priority,
           startDate: new Date(),
-          endDate : dueDate, // Default 7 days
+          endDate: dueDate,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      fetchTasks();
+      await fetchTasks();
       setTitle("");
       setDescription("");
       setAssignedTo("");
     } catch (err) {
       console.error("Failed to create task:", err);
+    } finally {
+      setIsTaskLoading(false);
     }
   };
 
   // Update task status
   const handleUpdateStatus = async (taskId, newStatus) => {
+    setIsTaskLoading(true);
     try {
       const token = localStorage.getItem("token");
       await axios.put(
@@ -96,9 +144,11 @@ const TaskForm = ({ userRole, currentUser }) => {
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      fetchTasks();
+      await fetchTasks();
     } catch (err) {
       console.error("Failed to update task status:", err);
+    } finally {
+      setIsTaskLoading(false);
     }
   };
 
@@ -109,6 +159,7 @@ const TaskForm = ({ userRole, currentUser }) => {
 
     if (!newTitle) return;
 
+    setIsTaskLoading(true);
     try {
       const token = localStorage.getItem("token");
       await axios.put(
@@ -119,9 +170,11 @@ const TaskForm = ({ userRole, currentUser }) => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      fetchTasks();
+      await fetchTasks();
     } catch (err) {
       console.error("Failed to update task:", err);
+    } finally {
+      setIsTaskLoading(false);
     }
   };
 
@@ -129,45 +182,51 @@ const TaskForm = ({ userRole, currentUser }) => {
   const handleDeleteTask = async (taskId) => {
     if (!window.confirm("Are you sure you want to delete this task?")) return;
 
+    setIsTaskLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`https://spoxtale-backend-598s.onrender.com/api/tasks/${taskId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      fetchTasks();
+      await axios.delete(
+        `https://spoxtale-backend-598s.onrender.com/api/tasks/${taskId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      await fetchTasks();
     } catch (err) {
       console.error("Failed to delete task:", err);
+    } finally {
+      setIsTaskLoading(false);
     }
   };
 
   // Profile Header with animations
-  const ProfileHeader = () => {
-    const userInitial = currentUser[0].toUpperCase();
+  const ProfileHeader = ({ currentUser, userRole }) => {
+    const userInitial = currentUser[0].toUpperCase() || "?";
 
     return (
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 mb-8 shadow-lg shadow-purple-500/20 text-white relative overflow-hidden"
-      >
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 mb-8 shadow-lg shadow-purple-500/20 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/10 to-transparent" />
-        <div className="flex items-center gap-4 relative">
-          <div className="p-3 bg-white/20 rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl">
-            {userInitial}
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-amber-200">{currentUser}</h2>
-            <div className="flex items-center gap-2 mt-1">
-              <FiBriefcase className="opacity-75" />
-              <span className="opacity-90">{userRole}</span>
-              <span className="ml-4 flex items-center gap-1">
-                <FiUser className="opacity-75" />
-                <span>{currentUser?.email}</span>
-              </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-white/20 rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl">
+              {userInitial}
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-amber-200">
+                {currentUser.toUpperCase() || "User"}
+              </h2>
+              <div className="flex items-center gap-2 mt-1">
+                <FiBriefcase className="opacity-75" />
+                <span className="opacity-90">{userRole}</span>
+                <span className="ml-4 flex items-center gap-1">
+                  <FiUser className="opacity-75" />
+                  <span>{email || "No Email"}</span>
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     );
   };
 
@@ -198,164 +257,305 @@ const TaskForm = ({ userRole, currentUser }) => {
     );
   };
 
+  const LoadingSpinner = () => (
+    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <FiLoader className="w-12 h-12 text-cyan-400 animate-spin" />
+    </div>
+  );
+
   return (
-    <div className="max-w-4xl mx-auto px-4">
-      <ProfileHeader />
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
+      {(isLoading || isTaskLoading) && <LoadingSpinner />}
+      {/* Animated background elements */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute w-[800px] h-[800px] -top-64 -left-64 bg-gradient-radial from-cyan-500/30 to-transparent animate-pulse" />
+        <div className="absolute w-[800px] h-[800px] -bottom-64 -right-64 bg-gradient-radial from-purple-500/30 to-transparent animate-pulse delay-1000" />
+      </div>
 
-      {/* Create Task Form */}
-      {(userRole === "Administrator" || userRole === "Manager") && (
-        <motion.form
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          onSubmit={handleCreateTask}
-          className="mb-8 bg-white rounded-xl p-6 shadow-md border border-gray-100"
-        >
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-700">
-            <FiPlus className="text-blue-500" /> Create New Task
-          </h3>
+      <Navbar userRole={userRole} currentUser={currentUser} />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
+      <div className="max-w-6xl mx-auto px-4 pt-24 pb-12 relative">
+        <div className="flex flex-col gap-8">
+          <ProfileHeader currentUser={currentUser} userRole={userRole} />
+
+          {/* Create Task Form */}
+          {(userRole === "Administrator" || userRole === "Manager") && (
+            <motion.form
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              onSubmit={handleCreateTask}
+              className="mb-8 bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 shadow-2xl border border-gray-800"
+            >
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-cyan-400">
+                <FiPlus className="text-cyan-400" /> Create New Task
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Task Title */}
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    placeholder="Task title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-gray-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30"
+                    required
+                  />
+                </div>
+
+                {/* Priority */}
+                <div className="space-y-1">
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-gray-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30"
+                  >
+                    <option value="High">High Priority</option>
+                    <option value="Medium">Medium Priority</option>
+                    <option value="Low">Low Priority</option>
+                  </select>
+                </div>
+
+                {/* Assigned To */}
+                <div className="space-y-1">
+                  <select
+                    value={assignedTo}
+                    onChange={(e) => setAssignedTo(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-gray-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30"
+                    required
+                  >
+                    <option value="">Assign to</option>
+                    {employees.map((emp) => (
+                      <option key={emp._id} value={emp._id}>
+                        {emp.username}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Due Date */}
+                <div className="space-y-1">
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-gray-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30"
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+              </div>
+
+              {/* Task Description */}
+              <div className="mt-4">
+                <textarea
+                  placeholder="Task description..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-gray-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30"
+                  rows="2"
+                />
+              </div>
+
+              {/* Create Task Button */}
+              <button
+                type="submit"
+                className="mt-4 w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2"
+              >
+                <FiPlus className="w-5 h-5" /> Create Task
+              </button>
+            </motion.form>
+          )}
+
+          {/* Task List Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+              Active Tasks
+            </h2>
+            <span className="text-cyan-400 bg-gray-800 px-3 py-1 rounded-full text-sm">
+              {filteredTasks.length}{" "}
+              {filteredTasks.length === 1 ? "task" : "tasks"}
+            </span>
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="Task title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
+                placeholder="Search tasks..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-100 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30"
               />
+              <FiSearch className="absolute right-3 top-3 text-gray-400" />
             </div>
 
-            <div className="space-y-1">
+            <div className="flex gap-3 flex-wrap">
               <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-cyan-400 focus:outline-none focus:border-cyan-500"
               >
-                <option value="High">High Priority</option>
-                <option value="Medium">Medium Priority</option>
-                <option value="Low">Low Priority</option>
+                <option value="All">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
               </select>
-            </div>
 
-            <div className="space-y-1">
               <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
+                value={selectedPriority}
+                onChange={(e) => setSelectedPriority(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-cyan-400 focus:outline-none focus:border-cyan-500"
               >
-                <option value="">Assign to</option>
+                <option value="All">All Priorities</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+
+              <select
+                value={selectedAssignee}
+                onChange={(e) => setSelectedAssignee(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-cyan-400 focus:outline-none focus:border-cyan-500"
+              >
+                <option value="All">All Assignees</option>
                 {employees.map((emp) => (
                   <option key={emp._id} value={emp._id}>
                     {emp.username}
                   </option>
                 ))}
               </select>
-            </div>
 
-            <div className="space-y-1">
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                min={new Date().toISOString().split("T")[0]}
-              />
+              <button
+                onClick={() => {
+                  setSelectedStatus("All");
+                  setSelectedPriority("All");
+                  setSelectedAssignee("All");
+                }}
+                className="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-cyan-400 transition-colors"
+              >
+                Clear Filters
+              </button>
             </div>
           </div>
 
-          <div className="mt-4">
-            <textarea
-              placeholder="Task description..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows="2"
-            />
-          </div>
+          {/* Task List */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-16">
+            {filteredTasks.map((task) => (
+              <motion.div
+                key={task._id}
+                whileHover={{ scale: 1.02 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-gray-800 hover:border-cyan-500/30 relative group transition-all duration-300"
+              >
+                {/* Glowing effect */}
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
 
-          <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer mt-4"
-            >
-              <FiPlus /> Create Task
-            </button>
-        </motion.form>
-      )}
-
-      {/* Task List */}
-      <div className="space-y-4">
-        {tasks.map((task) => (
-          <motion.div
-            key={task._id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-          >
-            <div className="flex justify-between items-start">
-              <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-lg font-semibold text-gray-800">
+                {/* Task Header */}
+                <div className="flex justify-between items-start">
+                  <h3 className="text-lg font-semibold text-gray-100 truncate">
                     {task.title}
                   </h3>
                   <StatusBadge status={task.status} />
                 </div>
-                <p className="text-gray-600">{task.description}</p>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <FiUser className="opacity-70" />
-                  <span>{task.assignedTo?.username}</span>
+
+                {/* Task Body */}
+                <div className="mt-4 space-y-3">
+                  <p className="text-gray-400 text-sm leading-relaxed line-clamp-3">
+                    {task.description}
+                  </p>
+
+                  {/* Assigned To */}
+                  <div className="flex items-center gap-2 text-sm text-cyan-400">
+                    <FiUser className="flex-shrink-0" />
+                    <span className="truncate">
+                      {task.assignedTo?.username}
+                    </span>
+                  </div>
+
+                  {/* Priority */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500">
+                      Priority:
+                    </span>
+                    <div
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        task.priority === "High"
+                          ? "bg-red-500/20 text-red-400"
+                          : task.priority === "Medium"
+                          ? "bg-yellow-500/20 text-yellow-400"
+                          : "bg-green-500/20 text-green-400"
+                      }`}
+                    >
+                      {task.priority}
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                {userRole === "Employee" && (
-                  <select
-                    value={task.status}
-                    onChange={(e) =>
-                      handleUpdateStatus(task._id, e.target.value)
-                    }
-                    className="px-3 py-1 rounded-lg border border-gray-200 bg-transparent focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-                )}
+                {/* Task Footer */}
+                <div className="mt-4 pt-3 border-t border-gray-800">
+                  <div className="flex items-center justify-between text-sm text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <FiClock className="text-cyan-400" />
+                      <span>
+                        {new Date(task.startDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FiCheckCircle className="text-purple-400" />
+                      <span>{new Date(task.endDate).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
 
-                {(userRole === "Administrator" || userRole === "Manager") && (
-                  <button
-                    onClick={() => handleUpdateTask(task)}
-                    className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-blue-600 transition-colors"
-                  >
-                    <FiEdit size={18} />
-                  </button>
-                )}
+                {/* Action Buttons */}
+                <div className="mt-4 flex items-center justify-between">
+                  {/* Status Dropdown */}
+                  {(userRole === "Employee" ||
+                    userRole === "Manager" ||
+                    userRole === "Administrator") && (
+                    <select
+                      value={task.status}
+                      onChange={(e) =>
+                        handleUpdateStatus(task._id, e.target.value)
+                      }
+                      className="px-3 py-1 rounded-lg bg-gray-800 border border-gray-700 text-cyan-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 text-sm"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  )}
 
-                {userRole === "Administrator" && (
-                  <button
-                    onClick={() => handleDeleteTask(task._id)}
-                    className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-red-600 transition-colors"
-                  >
-                    <FiTrash size={18} />
-                  </button>
-                )}
-              </div>
-            </div>
+                  {/* Edit and Delete Buttons */}
+                  <div className="flex items-center gap-2">
+                    {(userRole === "Administrator" ||
+                      userRole === "Manager") && (
+                      <button
+                        onClick={() => handleUpdateTask(task)}
+                        className="p-2 hover:bg-gray-800/50 rounded-lg text-cyan-400 hover:text-cyan-300 transition-colors"
+                      >
+                        <FiEdit size={16} />
+                      </button>
+                    )}
 
-            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4 text-sm text-gray-500">
-              <div className="flex items-center gap-1">
-                <FiClock className="opacity-70" />
-                <span>{new Date(task.startDate).toLocaleDateString()}</span>
-              </div>
-              <span>—</span>
-              <div className="flex items-center gap-1">
-                <FiCheckCircle className="opacity-70" />
-                <span>{new Date(task.endDate).toLocaleDateString()}</span>
-              </div>
-            </div>
-          </motion.div>
-        ))}
+                    {userRole === "Administrator" && (
+                      <button
+                        onClick={() => handleDeleteTask(task._id)}
+                        className="p-2 hover:bg-gray-800/50 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                      >
+                        <FiTrash size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        <Footer />
       </div>
     </div>
   );
